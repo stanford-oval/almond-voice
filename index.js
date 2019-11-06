@@ -44,7 +44,7 @@ micInputStream.on('processExitComplete', () => {
 });
 
 micInputStream.on('data', data => {
-  console.log(`Received input stream: ${data.length}`);
+  // console.log(`Received input stream: ${data.length}`);
   sdkInputStream.write(data.slice());  // slice without args copies array
 });
 

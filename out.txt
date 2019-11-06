@@ -1,0 +1,57 @@
+yarn run v1.19.0
+$ node index.js
+Mic START successful.
+Received Info: Recording WAVE 'stdin' : Signed 16 bit Little Endian, Rate 16000 Hz, Mono
+
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+(sessionStarted) SessionId: AD281FAEC1D44C29B1EDDC598BD5CA96
+Found silence block: 1 of 6
+Found silence block: 2 of 6
+Found silence block: 3 of 6
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+(speechStartDetected) SessionId: AD281FAEC1D44C29B1EDDC598BD5CA96
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi
+Found speech block
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there
+Found speech block
+Found speech block
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my
+Found speech block
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my name
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my name is
+Found silence block: 1 of 6
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my name is joe
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my name is
+Found silence block: 2 of 6
+(recognizing) Reason: RecognizingSpeech
+(recognizing) Text: hi there my name is john
+Found silence block: 3 of 6
+(speechEndDetected) SessionId: AD281FAEC1D44C29B1EDDC598BD5CA96
+(recognized) Reason: RecognizedSpeech
+Text: Hi there, my name is John.
+Found silence block: 4 of 6
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
+Found speech block
