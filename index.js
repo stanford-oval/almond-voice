@@ -19,7 +19,8 @@ const micInstance = mic({
   rate: '16000',
   channels: '1',
   debug: true,
-  exitOnSilence: 6
+  exitOnSilence: 6,
+  device: 'pulse'
 });
 
 const micInputStream = micInstance.getAudioStream();
