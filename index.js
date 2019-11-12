@@ -1,9 +1,16 @@
 // Load environment variables from .env
 require('dotenv').config();
 
-const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const mic = require('mic');
+const debug = require('debug');
+const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const settings = require('./settings');
+
+// Debug init
+const micDebug = debug('mic');
+const recognizerDebug = debug('recognizer');
+debug.enable('mic recognizer')
+
 
 /**
  * Create a push stream used to convey data to speech sdk.
@@ -18,7 +25,7 @@ const sdkInputStream = openPushStream();
 const micInstance = mic({
   rate: '16000',
   channels: '1',
-  debug: true,
+  debug: false,
   exitOnSilence: 6,
   device: 'pulse'
 });
@@ -27,25 +34,25 @@ const micInputStream = micInstance.getAudioStream();
 
 // Mic event handling
 micInputStream.on('startComplete', () => {
-  console.log('Mic START successful.');
+  micDebug('Mic START successful.');
 });
 
 micInputStream.on('stopComplete', () => {
-  console.log('Mic STOP successful.');
+  micDebug('Mic STOP successful.');
 });
 
 micInputStream.on('silence', () => {
-  console.log('Got signal SILENCE.');
+  micDebug('Got signal SILENCE.');
 });
 
 micInputStream.on('processExitComplete', () => {
-  console.log('Mic process exited.');
+  micDebug('Mic process exited.');
   sdkInputStream.close();
 });
 
 micInputStream.on('data', data => {
-  // console.log(`Received input stream: ${data.length}`);
-  sdkInputStream.write(data.slice());  // slice without args copies array
+  // micDebug(`Received input stream: ${data.length}`);
+  sdkInputStream.write(data.slice()); // slice without args copies array
 });
 
 const audioConfig = sdk.AudioConfig.fromStreamInput(sdkInputStream);
@@ -60,8 +67,8 @@ const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 recognizer.recognizing = (_, e) => {
   const reason = `(recognizing) Reason: ${sdk.ResultReason[e.result.reason]}`;
   const text = `(recognizing) Text: ${e.result.text}`;
-  console.log(reason);
-  console.log(text);
+  recognizerDebug(reason);
+  recognizerDebug(text);
 };
 
 // The event recognized signals that a final recognition result is received.
@@ -71,13 +78,13 @@ recognizer.recognized = (_, e) => {
   // Indicates that recognizable speech was not detected, and that recognition is done.
   if (e.result.reason === sdk.ResultReason.NoMatch) {
     const noMatchDetail = sdk.NoMatchDetails.fromResult(e.result);
-    console.log(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
-    console.log(
+    recognizerDebug(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
+    recognizerDebug(
       `(recognized) NoMatchReason: ${sdk.NoMatchReason[noMatchDetail.reason]}`
     );
   } else {
-    console.log(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
-    console.log(`Text: ${e.result.text}`);
+    recognizerDebug(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
+    recognizerDebug(`(recognized) Text: ${e.result.text}`);
   }
 };
 
@@ -93,31 +100,31 @@ recognizer.canceled = (_, e) => {
   if (e.reason === sdk.CancellationReason.Error) {
     str += ': ' + e.errorDetails;
   }
-  console.log(str);
+  recognizerDebug(str);
 };
 
 // Signals that a new session has started with the speech service
 recognizer.sessionStarted = (_, e) => {
   const str = `(sessionStarted) SessionId: ${e.sessionId}`;
-  console.log(str);
+  recognizerDebug(str);
 };
 
 // Signals the end of a session with the speech service.
 recognizer.sessionStopped = (_, e) => {
   const str = `(sessionStopped) SessionId: ${e.sessionId}`;
-  console.log(str);
+  recognizerDebug(str);
 };
 
 // Signals that the speech service has started to detect speech.
 recognizer.speechStartDetected = (_, e) => {
   const str = `(speechStartDetected) SessionId: ${e.sessionId}`;
-  console.log(str);
+  recognizerDebug(str);
 };
 
 // Signals that the speech service has detected that speech has stopped.
 recognizer.speechEndDetected = (_, e) => {
   const str = `(speechEndDetected) SessionId: ${e.sessionId}`;
-  console.log(str);
+  recognizerDebug(str);
 };
 
 // Start the recognizer
