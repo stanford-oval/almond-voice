@@ -15,6 +15,9 @@
     "dotenv": "^8.2.0",
     "mic": "^2.1.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.7.0",
-    "node-opus": "^0.3.3"
+    "node-opus": "^0.3.3",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "xmlbuilder": "^13.0.2"
   }
 }

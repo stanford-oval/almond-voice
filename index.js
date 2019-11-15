@@ -1,16 +1,18 @@
 // Load environment variables from .env
 require('dotenv').config();
 
-const mic = require('mic');
 const debug = require('debug');
+const fs = require('fs');
+const mic = require('mic');
+const rp = require('request-promise');
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const settings = require('./settings');
+const xmlbuilder = require('xmlbuilder');
 
 // Debug init
 const micDebug = debug('mic');
 const recognizerDebug = debug('recognizer');
-debug.enable('mic recognizer')
-
+debug.enable('mic recognizer');
 
 /**
  * Create a push stream used to convey data to speech sdk.
@@ -63,7 +65,7 @@ const speechConfig = sdk.SpeechConfig.fromSubscription(
 speechConfig.speechRecognitionLanguage = settings.language;
 
 // Recognizer settings
-const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+let recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 recognizer.recognizing = (_, e) => {
   const reason = `(recognizing) Reason: ${sdk.ResultReason[e.result.reason]}`;
   const text = `(recognizing) Text: ${e.result.text}`;
@@ -78,12 +80,16 @@ recognizer.recognized = (_, e) => {
   // Indicates that recognizable speech was not detected, and that recognition is done.
   if (e.result.reason === sdk.ResultReason.NoMatch) {
     const noMatchDetail = sdk.NoMatchDetails.fromResult(e.result);
-    recognizerDebug(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
+    recognizerDebug(
+      `(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`
+    );
     recognizerDebug(
       `(recognized) NoMatchReason: ${sdk.NoMatchReason[noMatchDetail.reason]}`
     );
   } else {
-    recognizerDebug(`(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`);
+    recognizerDebug(
+      `(recognized) Reason: ${sdk.ResultReason[e.result.reason]}`
+    );
     recognizerDebug(`(recognized) Text: ${e.result.text}`);
   }
 };
@@ -129,9 +135,21 @@ recognizer.speechEndDetected = (_, e) => {
 
 // Start the recognizer
 recognizer.recognizeOnceAsync(
-  result => {
+  async result => {
     recognizer.close();
     recognizer = undefined;
+    console.log(result);
+    let accessToken;
+    try {
+      accessToken = await getAccessToken(settings.subscriptionKey);
+    } catch (error) {
+      console.log(`FAILURE to get access token: ${error}`);
+    }
+    try {
+      const ttsResult = await textToSpeech(accessToken, result.privText);
+    } catch (error) {
+      console.log(`FAILURE TTS: ${error}`);
+    }
   },
   err => {
     recognizer.close();
@@ -141,3 +159,54 @@ recognizer.recognizeOnceAsync(
 
 // Start mic
 micInstance.start();
+
+const getAccessToken = subscriptionKey => {
+  let options = {
+    method: 'POST',
+    uri: 'https://westus2.api.cognitive.microsoft.com/sts/v1.0/issuetoken',
+    headers: {
+      'Ocp-Apim-Subscription-Key': subscriptionKey
+    }
+  };
+  return rp(options);
+};
+
+const textToSpeech = (accessToken, text) => {
+  // Create the SSML request.
+  const xml_body = xmlbuilder
+    .create('speak')
+    .att('version', '1.0')
+    .att('xml:lang', 'en-us')
+    .ele('voice')
+    .att('xml:lang', 'en-us')
+    .att(
+      'name',
+      'Microsoft Server Speech Text to Speech Voice (en-US, Guy24KRUS)'
+    )
+    .txt(text)
+    .end();
+  // Convert the XML into a string to send in the TTS request.
+  const body = xml_body.toString();
+
+  const options = {
+    method: 'POST',
+    baseUrl: 'https://westus2.tts.speech.microsoft.com/',
+    url: 'cognitiveservices/v1',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'cache-control': 'no-cache',
+      'User-Agent': 'YOUR_RESOURCE_NAME',
+      'X-Microsoft-OutputFormat': 'riff-24khz-16bit-mono-pcm',
+      'Content-Type': 'application/ssml+xml'
+    },
+    body: body
+  };
+
+  const request = rp(options).on('response', response => {
+    if (response.statusCode === 200) {
+      request.pipe(fs.createWriteStream('TTSOutput.wav'));
+      console.log('\nYour file is ready.\n');
+    }
+  });
+  return request;
+};
