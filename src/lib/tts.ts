@@ -1,5 +1,5 @@
-import fs from 'fs';
 import rp from 'request-promise';
+import Speaker from 'speaker';
 import xmlbuilder from 'xmlbuilder';
 import debug from '../utils/debug';
 import settings from '../utils/settings';
@@ -27,7 +27,7 @@ export function textToSpeech(text: string): void {
         .att('xml:lang', 'en-us')
         .att(
           'name',
-          'Microsoft Server Speech Text to Speech Voice (en-US, Guy24KRUS)'
+          'Microsoft Server Speech Text to Speech Voice (en-US, GuyNeural)'
         )
         .txt(text)
         .end();
@@ -45,12 +45,17 @@ export function textToSpeech(text: string): void {
           'cache-control': 'no-cache'
         },
         method: 'POST',
-        url: 'cognitiveservices/v1',
+        url: 'cognitiveservices/v1'
       };
 
       const request = rp(options).on('response', response => {
         if (response.statusCode === 200) {
-          request.pipe(fs.createWriteStream('TTSOutput.wav'));
+          const speaker = new Speaker({
+            bitDepth: 16, // 16-bit samples
+            channels: 1, // 2 channels
+            sampleRate: 24000 // 24kHz sample rate
+          });
+          request.pipe(speaker);
           debug.tts('\nYour file is ready.\n');
         }
       });

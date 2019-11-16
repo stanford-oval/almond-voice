@@ -61,6 +61,7 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "sha.js": "^2.4.11",
+    "speaker": "^0.4.2",
     "xmlbuilder": "^13.0.2"
   },
   "devDependencies": {
