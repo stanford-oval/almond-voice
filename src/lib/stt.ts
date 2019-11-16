@@ -8,6 +8,7 @@ import {
   NoMatchReason,
   ResultReason,
   SpeechConfig,
+  SpeechRecognitionResult,
   SpeechRecognizer
 } from 'microsoft-cognitiveservices-speech-sdk';
 import debug from '../utils/debug';
@@ -139,7 +140,7 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   return recognizer;
 }
 
-export async function speechToText(): Promise<void> {
+export function speechToText(handleText: (t: string) => any): void {
   const sdkInputStream = openPushStream();
   const micInstance = initMic(sdkInputStream);
   const recognizer = initRecognizer(sdkInputStream);
@@ -148,9 +149,10 @@ export async function speechToText(): Promise<void> {
 
   // Start the recognizer
   recognizer.recognizeOnceAsync(
-    async result => {
+    (result: SpeechRecognitionResult) => {
       recognizer.close();
       debug.recognizer(result);
+      handleText(result.text);
     },
     (_: any) => {
       recognizer.close();

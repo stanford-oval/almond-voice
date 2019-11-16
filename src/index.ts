@@ -5,14 +5,15 @@ dotenv.config();
 
 import debug from 'debug';
 import { speechToText } from './lib/stt';
+import { textToSpeech } from './lib/tts';
 
 
 // init debug
-debug.enable('mic recognizer');
+debug.enable('mic recognizer tts');
 
 async function main(): Promise<void> {
   // trigger stt
-  speechToText();
+  speechToText(textToSpeech);
   // query almond
   // trigger tts
   return;
