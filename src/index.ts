@@ -3,15 +3,16 @@ import dotenv from 'dotenv'
 // initialize dotenv
 dotenv.config();
 
-import debug from 'debug'; // tslint:disable-line
+import debug from 'debug';
+import { speechToText } from './lib/stt';
 
-// Debug init
-// const micDebug = debug('mic');
-// const recognizerDebug = debug('recognizer');
+
+// init debug
 debug.enable('mic recognizer');
 
-const main = async () => {
+async function main(): Promise<void> {
   // trigger stt
+  speechToText();
   // query almond
   // trigger tts
   return;
