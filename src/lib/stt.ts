@@ -9,8 +9,8 @@ import {
   ResultReason,
   SpeechConfig,
   SpeechRecognitionResult,
-  SpeechRecognizer
-} from 'microsoft-cognitiveservices-speech-sdk';
+  SpeechRecognizer,
+} from '@euirim/microsoft-cognitiveservices-speech-sdk';
 import debug from '../utils/debug';
 import settings from '../utils/settings';
 
@@ -28,7 +28,7 @@ function initMic(sdkInputStream: any): Mic {
     debug: false,
     device: 'pulse',
     exitOnSilence: 6,
-    rate: '16000'
+    rate: '16000',
   });
 
   const micInputStream = micInstance.getAudioStream();
@@ -63,7 +63,7 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   const audioConfig = AudioConfig.fromStreamInput(sdkInputStream);
   const speechConfig = SpeechConfig.fromSubscription(
     settings.subscriptionKey,
-    settings.serviceRegion
+    settings.serviceRegion,
   );
   speechConfig.speechRecognitionLanguage = settings.language; // tslint:disable-line
 
@@ -83,16 +83,12 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
     // Indicates that recognizable speech was not detected, and that recognition is done.
     if (e.result.reason === ResultReason.NoMatch) {
       const noMatchDetail = NoMatchDetails.fromResult(e.result);
+      debug.recognizer(`(recognized) Reason: ${ResultReason[e.result.reason]}`);
       debug.recognizer(
-        `(recognized) Reason: ${ResultReason[e.result.reason]}`
-      );
-      debug.recognizer(
-        `(recognized) NoMatchReason: ${NoMatchReason[noMatchDetail.reason]}`
+        `(recognized) NoMatchReason: ${NoMatchReason[noMatchDetail.reason]}`,
       );
     } else {
-      debug.recognizer(
-        `(recognized) Reason: ${ResultReason[e.result.reason]}`
-      );
+      debug.recognizer(`(recognized) Reason: ${ResultReason[e.result.reason]}`);
       debug.recognizer(`(recognized) Text: ${e.result.text}`);
     }
   };
@@ -107,9 +103,7 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   recognizer.canceled = (_, e) => {
     const str = `(canceled) Reason: ${CancellationReason[e.reason]}`;
     debug.recognizer(
-      e.reason === CancellationReason.Error
-        ? `${str}: ${e.errorDetails}`
-        : str
+      e.reason === CancellationReason.Error ? `${str}: ${e.errorDetails}` : str,
     );
   };
 
@@ -156,7 +150,7 @@ export function speechToText(handleText: (t: string) => any): void {
     },
     (_: any) => {
       recognizer.close();
-    }
+    },
   );
 
   micInstance.start();
