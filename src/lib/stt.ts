@@ -134,7 +134,7 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   return recognizer;
 }
 
-export function speechToText(handleText: (t: string) => any): void {
+export default function speechToText(handleText: (t: string) => any): void {
   const sdkInputStream = openPushStream();
   const micInstance = initMic(sdkInputStream);
   const recognizer = initRecognizer(sdkInputStream);

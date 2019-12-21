@@ -5,7 +5,7 @@ dotenv.config();
 
 /* eslint-disable import/first, import/named */
 import debug from 'debug';
-import { speechToText } from './lib/stt';
+import speechToText from './lib/stt';
 import textToSpeech from './lib/tts';
 /* eslint-enable import/first, import/named */
 

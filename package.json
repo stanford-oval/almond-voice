@@ -33,7 +33,7 @@
     "mic": "^2.1.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
-    "speaker": "^0.5.1",
+    "speaker": "^0.4.2",
     "winston": "^3.2.1",
     "xmlbuilder": "^13.0.2"
   },
