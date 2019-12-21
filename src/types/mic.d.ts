@@ -1,6 +1,6 @@
 declare module 'mic' {
   import { Transform } from 'stream';
-  
+
   export default function mic(options: Options): Mic;
 
   export interface Mic {

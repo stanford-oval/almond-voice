@@ -7,5 +7,5 @@ const ttsDebug = debug('tts');
 export default {
   mic: micDebug,
   recognizer: recognizerDebug,
-  tts: ttsDebug
+  tts: ttsDebug,
 };
