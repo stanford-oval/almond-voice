@@ -31,6 +31,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "mic": "^2.1.2",
+    "node-audiorecorder": "^1.4.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "speaker": "^0.4.2",

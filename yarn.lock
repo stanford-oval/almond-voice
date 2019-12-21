@@ -4655,6 +4655,11 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
+node-audiorecorder@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/node-audiorecorder/-/node-audiorecorder-1.4.1.tgz#e0de85e1644b22ea8f27b780f211ec3f9ca0b13a"
+  integrity sha512-8NCgj/tHyTTOL9jiuluBt3JDQXGca7gnSNziPjLeCMSYmMqYunskYwTmSxdXi4exNkk6ZBe6iVRI/axT04Nm0g==
+
 node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
