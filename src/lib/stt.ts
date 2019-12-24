@@ -1,157 +1,142 @@
-/* tslint:disable:no-object-mutation */
-import mic, { Mic } from 'mic';
-import {
-  AudioConfig,
-  AudioInputStream,
-  CancellationReason,
-  NoMatchDetails,
-  NoMatchReason,
-  ResultReason,
-  SpeechConfig,
-  SpeechRecognitionResult,
-  SpeechRecognizer,
-} from '@euirim/microsoft-cognitiveservices-speech-sdk';
-import debug from '../utils/debug';
-import settings from '../utils/settings';
+import record from 'node-record-lpcm16';
+import stream from 'stream';
+import { Detector, Models } from 'snowboy';
+import { EventEmitter } from 'events';
+import Annyang from './annyang-core';
+import CloudSpeechRecognizer from './csr';
+import ArecordHelper from './arecordHelper';
 
-/**
- * Create a push stream used to convey data to speech sdk.
- */
-const openPushStream = () => {
-  const pushStream = AudioInputStream.createPushStream();
-  return pushStream;
+const ERROR = {
+  NOT_STARTED: 'NOT_STARTED',
+  INVALID_INDEX: 'INVALID_INDEX',
 };
 
-function initMic(sdkInputStream: any): Mic {
-  const micInstance = mic({
-    channels: '1',
-    debug: false,
-    device: 'pulse',
-    exitOnSilence: 6,
-    rate: '16000',
-  });
+// Replaces Sonus pseudo-class
+export default class STT extends EventEmitter {
+  annyang: any;
 
-  const micInputStream = micInstance.getAudioStream();
+  opts: any;
 
-  // Mic event handling
-  micInputStream.on('startComplete', () => {
-    debug.mic('Mic started.');
-  });
+  models: any;
 
-  micInputStream.on('stopComplete', () => {
-    debug.mic('Mic stopped.');
-  });
+  sonus: stream.Writable;
 
-  micInputStream.on('silence', () => {
-    debug.mic('Got silence.');
-  });
+  mic: any;
 
-  micInputStream.on('processExitComplete', () => {
-    debug.mic('Mic process exited.');
-    sdkInputStream.close();
-  });
+  recordProgram: string;
 
-  micInputStream.on('data', data => {
-    // micDebug(`Received input stream: ${data.length}`);
-    sdkInputStream.write(data.slice()); // slice without args copies array
-  });
+  device: any;
 
-  return micInstance;
-}
+  started: boolean;
 
-function initRecognizer(sdkInputStream: any): SpeechRecognizer {
-  const audioConfig = AudioConfig.fromStreamInput(sdkInputStream);
-  const speechConfig = SpeechConfig.fromSubscription(
-    settings.subscriptionKey,
-    settings.serviceRegion,
-  );
-  speechConfig.speechRecognitionLanguage = settings.language; // tslint:disable-line
+  hotwords: any;
 
-  // Recognizer settings
-  const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-  recognizer.recognizing = (_, e) => {
-    const reason = `(recognizing) Reason: ${ResultReason[e.result.reason]}`;
-    const text = `(recognizing) Text: ${e.result.text}`;
-    debug.recognizer(reason);
-    debug.recognizer(text);
-  };
+  resource: string;
 
-  // The event recognized signals that a final recognition result is received.
-  // This is the final event that a phrase has been recognized.
-  // For continuous recognition, you will get one recognized event for each phrase recognized.
-  recognizer.recognized = (_, e) => {
-    // Indicates that recognizable speech was not detected, and that recognition is done.
-    if (e.result.reason === ResultReason.NoMatch) {
-      const noMatchDetail = NoMatchDetails.fromResult(e.result);
-      debug.recognizer(`(recognized) Reason: ${ResultReason[e.result.reason]}`);
-      debug.recognizer(
-        `(recognized) NoMatchReason: ${NoMatchReason[noMatchDetail.reason]}`,
-      );
-    } else {
-      debug.recognizer(`(recognized) Reason: ${ResultReason[e.result.reason]}`);
-      debug.recognizer(`(recognized) Text: ${e.result.text}`);
-    }
-  };
+  audioGain: number;
 
-  // The event signals that the service has stopped processing speech.
-  // https://docs.microsoft.com/javascript/api/microsoft-cognitiveservices-speech-sdk/speechrecognitioncanceledeventargs?view=azure-node-latest
-  // This can happen for two broad classes of reasons.
-  // 1. An error is encountered.
-  //    In this case the .errorDetails property will contain a textual representation of the error.
-  // 2. Speech was detected to have ended.
-  //    This can be caused by the end of the specified file being reached, or ~20 seconds of silence from a microphone input.
-  recognizer.canceled = (_, e) => {
-    const str = `(canceled) Reason: ${CancellationReason[e.reason]}`;
-    debug.recognizer(
-      e.reason === CancellationReason.Error ? `${str}: ${e.errorDetails}` : str,
+  language: string;
+
+  detector: any;
+
+  csr: any;
+
+  constructor(options: any, recognizer: any) {
+    super();
+    this.opts = options;
+    this.annyang = Annyang;
+    this.models = new Models();
+    this.sonus = new stream.Writable();
+    this.mic = null;
+    this.csr = new CloudSpeechRecognizer(recognizer);
+    this.recordProgram = options.recordProgram;
+    this.device = options.device;
+    this.started = false;
+    // If we don't have any hotwords passed in, add the default global model
+    this.hotwords = options.hotwords || [1];
+    this.hotwords.forEach((model: any) => {
+      this.models.add({
+        file: model.file || 'node_modules/snowboy/resources/snowboy.umdl',
+        sensitivity: model.sensitivity || '0.5',
+        hotwords: model.hotword || 'default',
+      });
+    });
+    this.resource =
+      options.resource || 'node_modules/snowboy/resources/common.res';
+    this.audioGain = options.audioGain || 2.0;
+    this.language = options.language || 'en-US';
+
+    this.detector = new Detector(options);
+
+    this.detector.on('silence', () => this.emit('silence'));
+    this.detector.on('sound', () => this.emit('sound'));
+
+    // When a hotword is detected pipe the audio stream to speech detection
+    this.detector.on('hotword', (index: any, hotword: any) => {
+      this.trigger(index, hotword);
+    });
+
+    // Handel speech recognition requests
+    this.csr.on('error', (error: Error) =>
+      this.emit('error', { streamingError: error }),
     );
-  };
+    this.csr.on('partial-result', (transcript: any) =>
+      this.emit('partial-result', transcript),
+    );
+    this.csr.on('final-result', (transcript: any) => {
+      this.emit('final-result', transcript);
+      this.annyang.trigger(transcript);
+    });
+  }
 
-  // Signals that a new session has started with the speech service
-  recognizer.sessionStarted = (_, e) => {
-    const str = `(sessionStarted) SessionId: ${e.sessionId}`;
-    debug.recognizer(str);
-  };
+  trigger(index: any, hotword: any): void {
+    if (this.started) {
+      try {
+        const triggerHotword =
+          index === 0 ? hotword : this.models.lookup(index);
+        this.emit('hotword', index, triggerHotword);
+        this.csr.startStreaming(this.opts, this.mic, this.csr);
+      } catch (e) {
+        throw ERROR.INVALID_INDEX;
+      }
+    } else {
+      throw ERROR.NOT_STARTED;
+    }
+  }
 
-  // Signals the end of a session with the speech service.
-  recognizer.sessionStopped = (_, e) => {
-    const str = `(sessionStopped) SessionId: ${e.sessionId}`;
-    debug.recognizer(str);
-  };
+  // eslint-disable-next-line class-methods-use-this
+  pause(): void {
+    record.pause();
+  }
 
-  // Signals that the speech service has started to detect speech.
-  recognizer.speechStartDetected = (_, e) => {
-    const str = `(speechStartDetected) SessionId: ${e.sessionId}`;
-    debug.recognizer(str);
-  };
+  // eslint-disable-next-line class-methods-use-this
+  resume(): void {
+    record.resume();
+  }
 
-  // Signals that the speech service has detected that speech has stopped.
-  recognizer.speechEndDetected = (_, e) => {
-    const str = `(speechEndDetected) SessionId: ${e.sessionId}`;
-    debug.recognizer(str);
-  };
+  start(): void {
+    this.mic = this.createRecorder();
 
-  return recognizer;
-}
+    if (this.recordProgram === 'arecord') {
+      // eslint-disable-next-line no-new
+      new ArecordHelper(this);
+    }
 
-export default function speechToText(handleText: (t: string) => any): void {
-  const sdkInputStream = openPushStream();
-  const micInstance = initMic(sdkInputStream);
-  const recognizer = initRecognizer(sdkInputStream);
+    this.mic.pipe(this.detector);
+    this.started = true;
+  }
 
-  debug.recognizer(settings.subscriptionKey);
+  // eslint-disable-next-line class-methods-use-this
+  stop(): void {
+    record.stop();
+  }
 
-  // Start the recognizer
-  recognizer.recognizeOnceAsync(
-    (result: SpeechRecognitionResult) => {
-      recognizer.close();
-      debug.recognizer(result);
-      handleText(result.text);
-    },
-    (_: any) => {
-      recognizer.close();
-    },
-  );
-
-  micInstance.start();
+  createRecorder(): any {
+    return record.start({
+      threshold: 0,
+      device: this.device || null,
+      recordProgram: this.recordProgram || 'rec',
+      verbose: false,
+    });
+  }
 }

@@ -176,8 +176,9 @@ export default class Oracle {
 
   /* Initialize event handlers. */
   private setup(): void {
-    this.setupRecorder();
+    // order of setup calls important
     this.setupRecognizer();
+    this.setupRecorder();
   }
 
   listen(): void {
@@ -186,9 +187,10 @@ export default class Oracle {
         this.recognizer.close();
         debug.recognizer(result);
         this.speak(this.think(result.text));
+        this.setup();
       },
       () => {
-        this.recognizer.close();
+        debug.recognizer('Recognizer failed.');
       },
     );
 
