@@ -40,12 +40,12 @@ export default class STT extends EventEmitter {
 
   record: any;
 
-  constructor(options: any, recognizer: any) {
+  constructor(options: any) {
     super();
     this.opts = options;
     this.models = new Models();
     this.mic = null;
-    this.csr = new CloudSpeechRecognizer(recognizer);
+    this.csr = new CloudSpeechRecognizer();
     this.recordProgram = options.recordProgram;
     this.device = options.device;
     this.started = false;
@@ -62,7 +62,7 @@ export default class STT extends EventEmitter {
       options.resource || 'node_modules/snowboy/resources/common.res';
     this.audioGain = options.audioGain || 2.0;
     this.language = options.language || 'en-US';
-    this.recording = recorder.record({
+    this.record = recorder.record({
       threshold: 0,
       device: null,
       recordProgram: 'rec',

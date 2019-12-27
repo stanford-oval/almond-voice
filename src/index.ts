@@ -20,8 +20,8 @@ async function main(): Promise<void> {
       hotwords: ['jarvis', 'jarvis2'],
     },
   ];
-  const recognizer = initRecognizer(initAudioInputStream());
-  const stt = new STT({ hotwords }, recognizer);
+  const stt = new STT({ hotwords });
+  stt.on('hotword', () => console.log('HOTWORD!'));
 
   stt.start();
 }
