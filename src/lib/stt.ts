@@ -1,10 +1,17 @@
-import record from 'node-record-lpcm16';
+import recorder from 'node-record-lpcm16';
 import stream from 'stream';
 import { Detector, Models } from 'snowboy';
 import { EventEmitter } from 'events';
 import Annyang from './annyang-core';
 import CloudSpeechRecognizer from './csr';
 import ArecordHelper from './arecordHelper';
+
+const record = recorder.record({
+  threshold: 0,
+  device: null,
+  recordProgram: 'rec',
+  verbose: false,
+});
 
 const ERROR = {
   NOT_STARTED: 'NOT_STARTED',
@@ -58,7 +65,7 @@ export default class STT extends EventEmitter {
       this.models.add({
         file: model.file || 'node_modules/snowboy/resources/snowboy.umdl',
         sensitivity: model.sensitivity || '0.5',
-        hotwords: model.hotword || 'default',
+        hotwords: model.hotwords || 'default',
       });
     });
     this.resource =
@@ -66,13 +73,22 @@ export default class STT extends EventEmitter {
     this.audioGain = options.audioGain || 2.0;
     this.language = options.language || 'en-US';
 
-    this.detector = new Detector(options);
+    // Building options for snowboy
+    this.opts.hotwords = this.hotwords;
+    this.opts.models = this.models;
+    this.opts.resource = this.resource;
+    this.opts.audioGain = this.audioGain;
+    this.opts.language = this.language;
+
+    this.detector = new Detector(this.opts);
 
     this.detector.on('silence', () => this.emit('silence'));
-    this.detector.on('sound', () => this.emit('sound'));
+    this.detector.on('sound', () => console.log('SOUND!'));
+    // this.detector.on('sound', () => this.emit('sound'));
 
     // When a hotword is detected pipe the audio stream to speech detection
     this.detector.on('hotword', (index: any, hotword: any) => {
+      console.log('HOTWORD!');
       this.trigger(index, hotword);
     });
 
@@ -97,7 +113,7 @@ export default class STT extends EventEmitter {
         this.emit('hotword', index, triggerHotword);
         this.csr.startStreaming(this.opts, this.mic, this.csr);
       } catch (e) {
-        throw ERROR.INVALID_INDEX;
+        throw Error(`${ERROR.INVALID_INDEX}: ${e}`);
       }
     } else {
       throw ERROR.NOT_STARTED;
@@ -131,12 +147,16 @@ export default class STT extends EventEmitter {
     record.stop();
   }
 
+  // eslint-disable-next-line class-methods-use-this
   createRecorder(): any {
+    return record.stream();
+    /*
     return record.start({
       threshold: 0,
       device: this.device || null,
       recordProgram: this.recordProgram || 'rec',
       verbose: false,
     });
+    */
   }
 }

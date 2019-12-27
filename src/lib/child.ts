@@ -1,21 +1,20 @@
 import mic, { Mic } from 'mic';
 import {
   AudioConfig,
-  AudioInputStream,
   CancellationReason,
   NoMatchDetails,
   NoMatchReason,
   ResultReason,
   SpeechConfig,
-  SpeechRecognitionResult,
+  AudioInputStream,
   SpeechRecognizer,
+  PushAudioInputStream,
 } from '@euirim/microsoft-cognitiveservices-speech-sdk';
-import Sonus from 'sonus';
 
 import debug from '../utils/debug';
 import settings from '../utils/settings';
 
-function initMic(sdkInputStream: any): Mic {
+export function initMic(sdkInputStream: any): Mic {
   const micInstance = mic({
     channels: '1',
     debug: false,
@@ -52,7 +51,7 @@ function initMic(sdkInputStream: any): Mic {
   return micInstance;
 }
 
-function initRecognizer(sdkInputStream: any): SpeechRecognizer {
+export function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   const audioConfig = AudioConfig.fromStreamInput(sdkInputStream);
   const speechConfig = SpeechConfig.fromSubscription(
     settings.subscriptionKey,
@@ -127,6 +126,11 @@ function initRecognizer(sdkInputStream: any): SpeechRecognizer {
   return recognizer;
 }
 
+export function initAudioInputStream(): PushAudioInputStream {
+  return AudioInputStream.createPushStream();
+}
+
+/*
 const sdkInputStream = AudioInputStream.createPushStream();
 const micInstance = initMic(sdkInputStream);
 const recognizer = initRecognizer(sdkInputStream);
@@ -160,3 +164,4 @@ micInputStream.on('data', data => {
 
 const hotwords = [{ file: '../resources/jarvis.umdl', hotword: 'jarvis' }];
 const sonus = Sonus.init({ hotwords }, recognizer);
+*/
