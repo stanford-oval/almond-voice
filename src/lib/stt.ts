@@ -1,17 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import recorder from 'node-record-lpcm16';
-import stream from 'stream';
 import { Detector, Models } from 'snowboy';
 import { EventEmitter } from 'events';
-import Annyang from './annyang-core';
 import CloudSpeechRecognizer from './csr';
 import ArecordHelper from './arecordHelper';
-
-const record = recorder.record({
-  threshold: 0,
-  device: null,
-  recordProgram: 'rec',
-  verbose: false,
-});
 
 const ERROR = {
   NOT_STARTED: 'NOT_STARTED',
@@ -20,19 +12,15 @@ const ERROR = {
 
 // Replaces Sonus pseudo-class
 export default class STT extends EventEmitter {
-  annyang: any;
-
   opts: any;
 
   models: any;
-
-  sonus: stream.Writable;
 
   mic: any;
 
   recordProgram: string;
 
-  device: any;
+  device: string;
 
   started: boolean;
 
@@ -46,14 +34,16 @@ export default class STT extends EventEmitter {
 
   detector: any;
 
-  csr: any;
+  csr: CloudSpeechRecognizer;
+
+  recording: any;
+
+  record: any;
 
   constructor(options: any, recognizer: any) {
     super();
     this.opts = options;
-    this.annyang = Annyang;
     this.models = new Models();
-    this.sonus = new stream.Writable();
     this.mic = null;
     this.csr = new CloudSpeechRecognizer(recognizer);
     this.recordProgram = options.recordProgram;
@@ -72,6 +62,12 @@ export default class STT extends EventEmitter {
       options.resource || 'node_modules/snowboy/resources/common.res';
     this.audioGain = options.audioGain || 2.0;
     this.language = options.language || 'en-US';
+    this.recording = recorder.record({
+      threshold: 0,
+      device: null,
+      recordProgram: 'rec',
+      verbose: false,
+    });
 
     // Building options for snowboy
     this.opts.hotwords = this.hotwords;
@@ -83,16 +79,14 @@ export default class STT extends EventEmitter {
     this.detector = new Detector(this.opts);
 
     this.detector.on('silence', () => this.emit('silence'));
-    this.detector.on('sound', () => console.log('SOUND!'));
-    // this.detector.on('sound', () => this.emit('sound'));
+    this.detector.on('sound', () => this.emit('sound'));
 
     // When a hotword is detected pipe the audio stream to speech detection
     this.detector.on('hotword', (index: any, hotword: any) => {
-      console.log('HOTWORD!');
       this.trigger(index, hotword);
     });
 
-    // Handel speech recognition requests
+    // Speech recognition callbacks
     this.csr.on('error', (error: Error) =>
       this.emit('error', { streamingError: error }),
     );
@@ -101,7 +95,6 @@ export default class STT extends EventEmitter {
     );
     this.csr.on('final-result', (transcript: any) => {
       this.emit('final-result', transcript);
-      this.annyang.trigger(transcript);
     });
   }
 
@@ -111,7 +104,7 @@ export default class STT extends EventEmitter {
         const triggerHotword =
           index === 0 ? hotword : this.models.lookup(index);
         this.emit('hotword', index, triggerHotword);
-        this.csr.startStreaming(this.opts, this.mic, this.csr);
+        this.csr.startStreaming(this.opts, this.mic);
       } catch (e) {
         throw Error(`${ERROR.INVALID_INDEX}: ${e}`);
       }
@@ -120,14 +113,12 @@ export default class STT extends EventEmitter {
     }
   }
 
-  // eslint-disable-next-line class-methods-use-this
   pause(): void {
-    record.pause();
+    this.record.pause();
   }
 
-  // eslint-disable-next-line class-methods-use-this
   resume(): void {
-    record.resume();
+    this.record.resume();
   }
 
   start(): void {
@@ -142,21 +133,11 @@ export default class STT extends EventEmitter {
     this.started = true;
   }
 
-  // eslint-disable-next-line class-methods-use-this
   stop(): void {
-    record.stop();
+    this.record.stop();
   }
 
-  // eslint-disable-next-line class-methods-use-this
   createRecorder(): any {
-    return record.stream();
-    /*
-    return record.start({
-      threshold: 0,
-      device: this.device || null,
-      recordProgram: this.recordProgram || 'rec',
-      verbose: false,
-    });
-    */
+    return this.record.stream();
   }
 }
