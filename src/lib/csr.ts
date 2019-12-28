@@ -136,42 +136,5 @@ export default class CloudSpeechRecognizer extends EventEmitter {
     audioStream.on('data', (data: any) => {
       sdkInputStream.write(toArrayBuffer(data));
     });
-    /*
-    const recognitionStream = this.recognizer
-      .streamingRecognize(request)
-      .on('error', (err: Error) => {
-        this.emit('error', err);
-        stopStream(recognitionStream);
-      })
-      .on('data', (data: any) => {
-        if (data.results[0] && data.results[0].alternatives[0]) {
-          hasResults = true;
-          // Emit partial or final results and end the stream
-          if (data.error) {
-            this.emit('error', data.error);
-            stopStream(recognitionStream);
-          } else if (data.results[0].isFinal) {
-            this.emit(
-              'final-result',
-              data.results[0].alternatives[0].transcript,
-            );
-            stopStream(recognitionStream);
-          } else {
-            this.emit(
-              'partial-result',
-              data.results[0].alternatives[0].transcript,
-            );
-          }
-        } else {
-          // Reached transcription time limit
-          if (!hasResults) {
-            this.emit('final-result', '');
-          }
-          stopStream(recognitionStream);
-        }
-      });
-
-    audioStream.pipe(recognitionStream);
-    */
   }
 }
