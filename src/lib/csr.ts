@@ -13,6 +13,12 @@ import {
 import debug from '../utils/debug';
 import settings from '../utils/settings';
 
+export interface Hotword {
+  file: string;
+  sensitivity: string;
+  hotwords: string[];
+}
+
 /* Adapted from https://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer */
 const toArrayBuffer = (buf: Buffer): ArrayBuffer => {
   const ab = new ArrayBuffer(buf.length);
@@ -127,6 +133,7 @@ export default class CloudSpeechRecognizer extends EventEmitter {
         hasResults = true;
         recognizer.close();
         debug.recognizer(result);
+        this.emit('final-result', result.text);
       },
       () => {
         debug.recognizer('Recognizer failed.');

@@ -1,21 +1,12 @@
-import mic, { Mic } from 'mic';
-import {
-  AudioConfig,
-  AudioInputStream,
-  CancellationReason,
-  NoMatchDetails,
-  NoMatchReason,
-  ResultReason,
-  SpeechConfig,
-  SpeechRecognitionResult,
-  SpeechRecognizer,
-  PushAudioInputStream,
-} from '@euirim/microsoft-cognitiveservices-speech-sdk';
 import rp from 'request-promise';
 import Speaker from 'speaker';
 import xmlbuilder from 'xmlbuilder';
+import { AccessToken } from 'simple-oauth2';
 import debug from '../utils/debug';
 import settings from '../utils/settings';
+import STT from './stt';
+import { Hotword } from './csr';
+import Almond from '../utils/almond';
 
 const getAccessToken = (subscriptionKey: string): rp.RequestPromise => {
   const options = {
@@ -29,180 +20,27 @@ const getAccessToken = (subscriptionKey: string): rp.RequestPromise => {
 };
 
 export default class Oracle {
-  isListening: boolean;
-
-  isRecognizing: boolean;
-
   isSpeaking: boolean;
 
-  isThinking: boolean;
+  hotwords: Hotword[];
 
-  recorder: Mic;
+  accessToken: AccessToken;
 
-  recognizer: SpeechRecognizer;
-
-  recognizerInputStream: PushAudioInputStream;
-
-  constructor() {
-    this.isListening = false;
-    this.isRecognizing = false;
+  constructor(accessToken: AccessToken) {
     this.isSpeaking = false;
-    this.isThinking = false;
-
-    this.recorder = mic({
-      channels: '1',
-      debug: false,
-      device: 'pulse',
-      exitOnSilence: 6,
-      rate: '16000',
-    });
-
-    this.recognizerInputStream = AudioInputStream.createPushStream();
-    const audioConfig = AudioConfig.fromStreamInput(this.recognizerInputStream);
-    const speechConfig = SpeechConfig.fromSubscription(
-      settings.subscriptionKey,
-      settings.serviceRegion,
-    );
-    speechConfig.speechRecognitionLanguage = settings.language; // tslint:disable-line
-    this.recognizer = new SpeechRecognizer(speechConfig, audioConfig);
-
-    this.setup();
-  }
-
-  private setupRecorder(): void {
-    const recorderStream = this.recorder.getAudioStream();
-
-    // Mic event handling
-    recorderStream.on('startComplete', () => {
-      this.isListening = true;
-
-      debug.mic('Mic started.');
-    });
-
-    recorderStream.on('stopComplete', () => {
-      this.isListening = false;
-
-      debug.mic('Mic stopped.');
-    });
-
-    recorderStream.on('silence', () => {
-      debug.mic('Got silence.');
-    });
-
-    recorderStream.on('processExitComplete', () => {
-      debug.mic('Mic process exited.');
-      // sdkInputStream.close();
-    });
-
-    recorderStream.on('data', data => {
-      // micDebug(`Received input stream: ${data.length}`);
-      this.recognizerInputStream.write(data.slice()); // slice without args copies array
-    });
-  }
-
-  private setupRecognizer(): void {
-    this.recognizer.recognizing = (_, e): void => {
-      this.isRecognizing = true;
-
-      const reason = `(recognizing) Reason: ${ResultReason[e.result.reason]}`;
-      const text = `(recognizing) Text: ${e.result.text}`;
-      debug.recognizer(reason);
-      debug.recognizer(text);
-    };
-
-    // The event recognized signals that a final recognition result is received.
-    // This is the final event that a phrase has been recognized.
-    // For continuous recognition, you will get one recognized event for each phrase recognized.
-    this.recognizer.recognized = (_, e) => {
-      // Indicates that recognizable speech was not detected, and that recognition is done.
-      if (e.result.reason === ResultReason.NoMatch) {
-        const noMatchDetail = NoMatchDetails.fromResult(e.result);
-        debug.recognizer(
-          `(recognized) Reason: ${ResultReason[e.result.reason]}`,
-        );
-        debug.recognizer(
-          `(recognized) NoMatchReason: ${NoMatchReason[noMatchDetail.reason]}`,
-        );
-      } else {
-        debug.recognizer(
-          `(recognized) Reason: ${ResultReason[e.result.reason]}`,
-        );
-        debug.recognizer(`(recognized) Text: ${e.result.text}`);
-      }
-
-      this.isRecognizing = false;
-    };
-
-    // The event signals that the service has stopped processing speech.
-    // https://docs.microsoft.com/javascript/api/microsoft-cognitiveservices-speech-sdk/speechrecognitioncanceledeventargs?view=azure-node-latest
-    // This can happen for two broad classes of reasons.
-    // 1. An error is encountered.
-    //    In this case the .errorDetails property will contain a textual representation of the error.
-    // 2. Speech was detected to have ended.
-    //    This can be caused by the end of the specified file being reached, or ~20 seconds of silence from a microphone input.
-    this.recognizer.canceled = (_, e) => {
-      const str = `(canceled) Reason: ${CancellationReason[e.reason]}`;
-      debug.recognizer(
-        e.reason === CancellationReason.Error
-          ? `${str}: ${e.errorDetails}`
-          : str,
-      );
-    };
-
-    // Signals that a new session has started with the speech service
-    this.recognizer.sessionStarted = (_, e) => {
-      const str = `(sessionStarted) SessionId: ${e.sessionId}`;
-      debug.recognizer(str);
-    };
-
-    // Signals the end of a session with the speech service.
-    this.recognizer.sessionStopped = (_, e) => {
-      const str = `(sessionStopped) SessionId: ${e.sessionId}`;
-      debug.recognizer(str);
-    };
-
-    // Signals that the speech service has started to detect speech.
-    this.recognizer.speechStartDetected = (_, e) => {
-      const str = `(speechStartDetected) SessionId: ${e.sessionId}`;
-      debug.recognizer(str);
-    };
-
-    // Signals that the speech service has detected that speech has stopped.
-    this.recognizer.speechEndDetected = (_, e) => {
-      const str = `(speechEndDetected) SessionId: ${e.sessionId}`;
-      debug.recognizer(str);
-    };
-  }
-
-  /* Initialize event handlers. */
-  private setup(): void {
-    // order of setup calls important
-    this.setupRecognizer();
-    this.setupRecorder();
-  }
-
-  listen(): void {
-    this.recognizer.recognizeOnceAsync(
-      (result: SpeechRecognitionResult) => {
-        this.recognizer.close();
-        debug.recognizer(result);
-        this.speak(this.think(result.text));
-        this.setup();
+    this.hotwords = [
+      {
+        file: './src/resources/jarvis.umdl',
+        sensitivity: '0.5,0.50',
+        hotwords: ['jarvis', 'jarvis2'],
       },
-      () => {
-        debug.recognizer('Recognizer failed.');
-      },
-    );
-
-    this.recorder.start();
+    ];
+    this.accessToken = accessToken;
   }
 
-  /* Think of what to say based on what is said. */
-  think(prompt: string): string {
-    this.isThinking = true;
-    const response = `You said "${prompt}".`;
-    this.isThinking = false;
-    return response;
+  private async think(prompt: string): Promise<string> {
+    const almond = new Almond(this.accessToken);
+    return almond.getReply(prompt);
   }
 
   speak(statement: string): void {
@@ -243,11 +81,13 @@ export default class Oracle {
           if (response.statusCode === 200) {
             const speaker = new Speaker({
               bitDepth: 16, // 16-bit samples
-              channels: 1, // 2 channels
+              channels: 1,
               sampleRate: 24000, // 24kHz sample rate
             });
-            request.pipe(speaker);
             debug.tts('\nSpeaking.\n');
+            request.pipe(speaker).on('error', (e: Error) => {
+              debug.tts(`Speaking failed. Reason: ${e}`);
+            });
             this.isSpeaking = false;
           }
         });
@@ -256,5 +96,16 @@ export default class Oracle {
       .catch((e: Error) => {
         debug.tts(e);
       });
+  }
+
+  start() {
+    this.speak("Hello, I'm Genie. How can I help you?");
+    const stt = new STT({ hotwords: this.hotwords });
+    stt.on('hotword', () => console.log('HOTWORD!'));
+    stt.on('final-result', async (transcript: any) => {
+      const reply = await this.think(transcript);
+      this.speak(reply);
+    });
+    stt.start();
   }
 }

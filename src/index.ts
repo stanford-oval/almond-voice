@@ -1,29 +1,41 @@
-// tslint:disable:no-expression-statement
 import dotenv from 'dotenv';
 // initialize dotenv
 dotenv.config();
 
 /* eslint-disable import/first, import/named */
 import debug from 'debug';
-import STT from './lib/stt';
-import { initRecognizer, initAudioInputStream } from './lib/child';
-/* eslint-enable import/first, import/named */
+import fs from 'fs';
+import https from 'https';
+import express from 'express';
+import Oracle from './lib/oracle';
+import Auth from './utils/auth';
 
 // init debug
-debug.enable('mic recognizer tts');
+debug.enable('auth mic recognizer tts');
 
 async function main(): Promise<void> {
-  const hotwords = [
-    {
-      file: './src/resources/jarvis.umdl',
-      sensitivity: '0.5,0.50',
-      hotwords: ['jarvis', 'jarvis2'],
-    },
-  ];
-  const stt = new STT({ hotwords });
-  stt.on('hotword', () => console.log('HOTWORD!'));
+  const app = express();
+  const auth = new Auth();
 
-  stt.start();
+  // for OAuth
+  app.get('/callback', async (req, _) => {
+    const { code } = req.query;
+    const accessToken = await auth.getAccessToken(code);
+    const oracle = new Oracle(accessToken);
+    oracle.start();
+  });
+
+  await auth.authorize();
+  https
+    .createServer(
+      {
+        key: fs.readFileSync('./keys/key.pem'),
+        cert: fs.readFileSync('./keys/cert.pem'),
+        passphrase: process.env.HTTPS_PASSPHRASE,
+      },
+      app,
+    )
+    .listen(3000);
 }
 
 main();

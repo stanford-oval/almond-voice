@@ -105,3 +105,6 @@ dist
 
 # Typescript build
 build/
+
+# SSL keys
+keys/
