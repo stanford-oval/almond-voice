@@ -13,6 +13,7 @@
     }
   ],
   "scripts": {
+  	"start-wip": "yarn build && node server/server",
     "build": "yarn build:types && yarn build:js",
     "build:types": "tsc --noEmit",
     "build:js": "babel src --out-dir build --extensions \".ts,.tsx\" --source-maps inline",
@@ -31,6 +32,7 @@
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "multer": "^1.4.2",
     "node-audiorecorder": "^1.4.1",
     "node-record-lpcm16": "^1.0.1",
     "open": "^7.0.0",
