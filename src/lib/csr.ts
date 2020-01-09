@@ -142,6 +142,8 @@ export default class CloudSpeechRecognizer extends EventEmitter {
 
     audioStream.on('data', (data: any) => {
       sdkInputStream.write(toArrayBuffer(data));
+    }).on('end', () => {
+      sdkInputStream.close();
     });
   }
 }
