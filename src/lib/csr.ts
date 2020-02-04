@@ -9,7 +9,7 @@ import {
   AudioInputStream,
   SpeechRecognizer,
   SpeechRecognitionResult,
-} from 'microsoft-cognitiveservices-speech-sdk';
+} from '@euirim/microsoft-cognitiveservices-speech-sdk';
 import debug from '../utils/debug';
 import settings from '../utils/settings';
 import { toArrayBuffer } from '../utils/buffer';

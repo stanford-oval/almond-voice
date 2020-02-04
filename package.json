@@ -22,10 +22,12 @@
     "lint": "tsc --noEmit && eslint '*/**/*.{js,jsx,ts,tsx}' --quiet --fix",
     "start-api:dev": "nodemon --config \"./nodemon.json\"/",
     "start-api:prod": "node -r dotenv/config build/index.js",
+    "start-client": "yarn build && NODE_ENV=development node -r dotenv/config build/client/index.js",
     "test": "jest"
   },
   "dependencies": {
     "@babel/polyfill": "^7.7.0",
+    "@euirim/microsoft-cognitiveservices-speech-sdk": "^1.8.0",
     "@types/multer": "^1.4.0",
     "axios": "^0.19.0",
     "body-parser": "^1.19.0",
@@ -34,6 +36,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
+    "mic": "^2.1.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.9.1",
     "multer": "^1.4.2",
     "node-audiorecorder": "^1.4.1",

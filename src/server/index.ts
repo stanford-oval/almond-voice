@@ -5,9 +5,8 @@ import {
   AudioInputStream,
   ResultReason,
   SpeechRecognitionResult,
-} from 'microsoft-cognitiveservices-speech-sdk';
+} from '@euirim/microsoft-cognitiveservices-speech-sdk';
 import websocketStream from 'websocket-stream/stream';
-import websocket from 'ws';
 
 import { initRecognizer } from '../lib/csr';
 import { toArrayBuffer } from '../utils/buffer';
@@ -29,12 +28,21 @@ app.use(
 );
 app.use(bodyParser.json());
 
+// Handle CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept',
+  );
+  next();
+});
+
 // Websockets
-app.ws('/stt', (ws: websocket, req: express.Request) => {
+app.ws('/stt', (ws: any, req: express.Request) => {
   const sdkAudioInputStream = AudioInputStream.createPushStream();
   const recognizer = initRecognizer(sdkAudioInputStream);
 
-  // convert ws to stream
   const stream = websocketStream(ws, {
     binary: true,
   });
@@ -42,26 +50,29 @@ app.ws('/stt', (ws: websocket, req: express.Request) => {
   recognizer.recognized = (_, e) => {
     // Indicates that recognizable speech was not detected, and that recognition is done.
     if (e.result.reason === ResultReason.NoMatch) {
-      ws.send({ success: false, error: 'Speech unrecognizable.' });
+      ws.send(
+        JSON.stringify({ success: false, error: 'Speech unrecognizable.' }),
+      );
     }
   };
 
   recognizer.recognizeOnceAsync(
     (result: SpeechRecognitionResult) => {
+      ws.send(JSON.stringify({ success: true, text: result.text }));
       recognizer.close();
-      ws.send({
-        success: true,
-        text: result.text,
-      });
     },
     () => {
       recognizer.close();
-      ws.send({
-        success: false,
-        error: 'Speech recognition failed due to internal error.',
-      });
+      ws.send(
+        JSON.stringify({
+          success: false,
+          error: 'Speech recognition failed due to internal error.',
+        }),
+      );
     },
   );
+
+  // convert ws to stream
 
   stream
     .on('data', (data: any) => {
