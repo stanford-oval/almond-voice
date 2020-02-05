@@ -109,5 +109,8 @@ build/
 # SSL keys
 keys/
 
-# Ignore audio uploads
-uploads/
+# Ignore audio uploads/downloads
+uploads/*
+!uploads/.gitkeep
+downloads/*
+!downloads/.gitkeep

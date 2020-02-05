@@ -8,8 +8,10 @@ import {
 } from '@euirim/microsoft-cognitiveservices-speech-sdk';
 import wav from 'wav';
 import { WaveFile } from 'wavefile';
+import path from 'path';
 
 import { initRecognizer } from '../lib/csr';
+import textToSpeech from '../lib/tts';
 
 const upload = multer({ dest: 'uploads/' }); // audio kept in-memory
 const router = express.Router();
@@ -72,7 +74,24 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
 
     fileStream.pipe(wavReader);
   });
-  // const memoryStream = bufferToStream(req.file.buffer);
+});
+
+router.post('/rest/tts', (req, res) => {
+  const name = Math.random().toString(36);
+  const downloadFn = path.resolve(`downloads/${name}.wav`);
+  const fileStream = fs.createWriteStream(downloadFn);
+  textToSpeech(req.body.text, fileStream);
+  res.status(200).json({
+    success: true,
+    audio: `/audio/${name}.wav`,
+  });
+});
+
+router.get('/audio/:audioFileName', (req, res) => {
+  const filename = req.params.audioFileName;
+  const downloadFn = path.resolve(`downloads/${filename}`);
+  res.set('Content-Type', 'audio/wav');
+  res.sendFile(downloadFn);
 });
 
 export default router;
