@@ -11,6 +11,7 @@ import websocketStream from 'websocket-stream/stream';
 import { initRecognizer } from '../lib/csr';
 import { toArrayBuffer } from '../utils/buffer';
 import routes from './routes';
+import textToSpeech from '../lib/tts';
 
 const port = process.env.PORT || 8000;
 
@@ -83,6 +84,14 @@ app.ws('/stt', (ws: any, req: express.Request) => {
     .on('end', () => {
       sdkAudioInputStream.close();
     });
+});
+
+app.ws('/tts', (ws: any, req: express.Request) => {
+  ws.on('message', (m: any) => {
+    if (m.data.text) {
+      textToSpeech(m.data.text, ws);
+    }
+  });
 });
 
 // Any other routes (for future expansion)
