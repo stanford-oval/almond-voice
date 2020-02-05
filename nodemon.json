@@ -1,0 +1,6 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "ignore": ["src/public"],
+  "exec": "yarn build && NODE_ENV=development node -r dotenv/config build/server/index.js"
+}

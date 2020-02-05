@@ -1,23 +1,99 @@
 {
-  "name": "almond-voice",
+  "name": "genie",
   "version": "1.0.0",
-  "description": "A prototype voice interface for Almond.",
-  "main": "index.js",
-  "repository": "git@github.com:euirim/almond-voice.git",
-  "author": "Euirim Choi <euirim@stanford.edu>",
-  "license": "GNU",
-  "private": true,
+  "description": "Voice interface for Almond, an open-source virtual assistant developed at Stanford University.",
+  "main": "build/in/index.js",
+  "repository": "https://github.com/euirim/genie",
+  "license": "GPL",
+  "keywords": [],
+  "contributors": [
+    {
+      "name": "Euirim Choi",
+      "email": "euirim@stanford.edu"
+    }
+  ],
   "scripts": {
-    "start": "node index.js"
+    "start-wip": "yarn build && node server/server",
+    "build": "yarn build:types && yarn build:js",
+    "build:types": "tsc --noEmit",
+    "build:js": "babel src --out-dir build --extensions \".ts,.tsx\" --source-maps inline",
+    "check-types": "tsc --noEmit",
+    "check-types:watch": "npm run check-types -- --watch",
+    "lint": "tsc --noEmit && eslint '*/**/*.{js,jsx,ts,tsx}' --quiet --fix",
+    "start-api:dev": "nodemon --config \"./nodemon.json\"/",
+    "start-api:prod": "yarn build && NODE_ENV=production node build/server/index.js",
+    "start-client": "yarn build && NODE_ENV=development node -r dotenv/config build/client/index.js",
+    "test": "jest"
   },
   "dependencies": {
+    "@babel/polyfill": "^7.7.0",
+    "@euirim/microsoft-cognitiveservices-speech-sdk": "^1.8.0",
+    "axios": "^0.19.0",
+    "body-parser": "^1.19.0",
+    "consumer-queue": "^1.0.1",
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0",
     "mic": "^2.1.2",
-    "microsoft-cognitiveservices-speech-sdk": "^1.7.0",
-    "node-opus": "^0.3.3",
+    "microsoft-cognitiveservices-speech-sdk": "^1.9.1",
+    "multer": "^1.4.2",
+    "node-audiorecorder": "^1.4.1",
+    "node-record-lpcm16": "^1.0.1",
+    "open": "^7.0.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
+    "simple-oauth2": "^3.1.0",
+    "sonus": "^1.0.3",
+    "wav": "^1.0.2",
+    "wavefile": "^11.0.0",
+    "websocket-stream": "^5.5.0",
+    "winston": "^3.2.1",
+    "ws": "^7.2.1",
     "xmlbuilder": "^13.0.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.7.5",
+    "@babel/core": "^7.7.5",
+    "@babel/plugin-proposal-class-properties": "^7.7.4",
+    "@babel/plugin-proposal-numeric-separator": "^7.7.4",
+    "@babel/plugin-proposal-object-rest-spread": "^7.7.4",
+    "@babel/preset-env": "^7.7.6",
+    "@babel/preset-typescript": "^7.7.4",
+    "@types/axios": "^0.14.0",
+    "@types/debug": "^4.1.5",
+    "@types/express": "^4.17.2",
+    "@types/express-ws": "^3.0.0",
+    "@types/jest": "^24.0.24",
+    "@types/multer": "^1.4.0",
+    "@types/node": "^12.12.17",
+    "@types/request-promise": "^4.1.45",
+    "@types/simple-oauth2": "^2.5.2",
+    "@types/wav": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.11.0",
+    "@typescript-eslint/parser": "^2.11.0",
+    "eslint": "^6.7.2",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-jest": "^23.1.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "husky": "^3.1.0",
+    "jest": "^24.9.0",
+    "lint-staged": "^10.0.0-beta.8",
+    "nodemon": "^2.0.2",
+    "prettier": "^1.19.1",
+    "ts-jest": "^24.2.0",
+    "typescript": "^3.7.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn test && tsc --noEmit && lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }

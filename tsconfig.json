@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "strict": true,
+    "baseUrl": "./",
+    "skipLibCheck": true,
+    "outDir": "build",
+    "removeComments": true,
+    "experimentalDecorators": true,
+    "target": "esnext",
+    "noEmit": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "esModuleInterop": true,
+    "types": ["node", "jest"],
+    "typeRoots": ["node_modules/@types"]
+  },
+  "include": ["./src/**/*.ts"],
+  "exclude": ["./src/public/"]
+}
