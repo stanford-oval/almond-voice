@@ -10,9 +10,7 @@ import wav from 'wav';
 import { WaveFile } from 'wavefile';
 
 import { initRecognizer } from '../lib/csr';
-import { bufferToStream, toArrayBuffer } from '../utils/buffer';
 
-const storage = multer.memoryStorage();
 const upload = multer({ dest: 'uploads/' }); // audio kept in-memory
 const router = express.Router();
 

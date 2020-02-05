@@ -13,7 +13,7 @@ import { toArrayBuffer } from '../utils/buffer';
 import routes from './routes';
 import textToSpeech from '../lib/tts';
 
-const port = process.env.PORT || 8000;
+const port = 8000;
 
 // Extend express to accomodate websockets
 const { app } = expressWS(express(), undefined, {

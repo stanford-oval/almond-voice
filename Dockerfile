@@ -9,4 +9,4 @@ RUN yarn
 
 COPY . .
 
-ENTRYPOINT ["yarn", "start-api:dev"]
+ENTRYPOINT ["yarn", "start-api:prod"]

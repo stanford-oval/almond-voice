@@ -21,7 +21,7 @@
     "check-types:watch": "npm run check-types -- --watch",
     "lint": "tsc --noEmit && eslint '*/**/*.{js,jsx,ts,tsx}' --quiet --fix",
     "start-api:dev": "nodemon --config \"./nodemon.json\"/",
-    "start-api:prod": "node -r dotenv/config build/server/index.js",
+    "start-api:prod": "yarn build && NODE_ENV=production node build/server/index.js",
     "start-client": "yarn build && NODE_ENV=development node -r dotenv/config build/client/index.js",
     "test": "jest"
   },
