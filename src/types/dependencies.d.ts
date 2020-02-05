@@ -5,3 +5,4 @@ declare module 'sonus';
 declare module 'websocket-stream';
 declare module 'websocket-stream/stream';
 declare module 'microphone-stream';
+declare module 'wavefile';

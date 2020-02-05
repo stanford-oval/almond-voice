@@ -108,3 +108,6 @@ build/
 
 # SSL keys
 keys/
+
+# Ignore audio uploads
+uploads/
