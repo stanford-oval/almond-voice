@@ -1,0 +1,7 @@
+.env
+.github
+.git
+build
+keys
+node_modules
+yarn-error.log

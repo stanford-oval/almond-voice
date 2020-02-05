@@ -7,7 +7,7 @@ import debug from 'debug';
 import fs from 'fs';
 import https from 'https';
 import express from 'express';
-import Oracle from './lib/oracle';
+// import Oracle from './lib/oracle';
 import Auth from './utils/auth';
 
 // init debug
@@ -19,10 +19,12 @@ async function main(): Promise<void> {
 
   // for OAuth
   app.get('/callback', async (req, _) => {
+    /*
     const { code } = req.query;
     const accessToken = await auth.getAccessToken(code);
     const oracle = new Oracle(accessToken);
     oracle.start();
+    */
   });
 
   await auth.authorize();

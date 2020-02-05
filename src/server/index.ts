@@ -58,6 +58,7 @@ app.ws('/stt', (ws: any, req: express.Request) => {
 
   recognizer.recognizeOnceAsync(
     (result: SpeechRecognitionResult) => {
+      console.log(`Result: ${result.text}`);
       ws.send(JSON.stringify({ success: true, text: result.text }));
       recognizer.close();
     },
@@ -76,6 +77,7 @@ app.ws('/stt', (ws: any, req: express.Request) => {
 
   stream
     .on('data', (data: any) => {
+      console.log('Received data!');
       sdkAudioInputStream.write(toArrayBuffer(data));
     })
     .on('end', () => {

@@ -21,7 +21,7 @@ const main = () => {
   });
   */
 
-  const ws = websocket('ws://localhost:8000/stt');
+  const ws = websocket('ws://127.0.0.1:8000/stt');
 
   /*
   console.log('Starting recording.');
