@@ -52,7 +52,7 @@ app.ws('/stt', (ws: any, req: express.Request) => {
     // Indicates that recognizable speech was not detected, and that recognition is done.
     if (e.result.reason === ResultReason.NoMatch) {
       ws.send(
-        JSON.stringify({ success: false, error: 'Speech unrecognizable.' }),
+        JSON.stringify({ status: 'error', error: 'Speech unrecognizable.' }),
       );
     }
   };
@@ -60,14 +60,14 @@ app.ws('/stt', (ws: any, req: express.Request) => {
   recognizer.recognizeOnceAsync(
     (result: SpeechRecognitionResult) => {
       console.log(`Result: ${result.text}`);
-      ws.send(JSON.stringify({ success: true, text: result.text }));
+      ws.send(JSON.stringify({ status: 'ok', text: result.text }));
       recognizer.close();
     },
     () => {
       recognizer.close();
       ws.send(
         JSON.stringify({
-          success: false,
+          status: 'error',
           error: 'Speech recognition failed due to internal error.',
         }),
       );

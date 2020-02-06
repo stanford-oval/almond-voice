@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import express from 'express';
 import multer from 'multer';
@@ -35,7 +36,7 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
       // Indicates that recognizable speech was not detected, and that recognition is done.
       if (e.result.reason === ResultReason.NoMatch) {
         res.status(400).json({
-          success: false,
+          status: 'error',
           error: 'Speech unrecognizable.',
         });
       }
@@ -45,14 +46,14 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
       (result: SpeechRecognitionResult) => {
         console.log(`Result: ${result.text}`);
         res.status(200).json({
-          success: true,
+          status: 'ok',
           text: result.text,
         });
         recognizer.close();
       },
       () => {
         res.status(400).json({
-          success: true,
+          status: 'error',
           error: 'Speech recognition failed due to internal error.',
         });
         recognizer.close();
@@ -77,14 +78,21 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
 });
 
 router.post('/rest/tts', (req, res) => {
-  const name = Math.random().toString(36);
+  const name = crypto.randomBytes(32).toString('hex');
   const downloadFn = path.resolve(`downloads/${name}.wav`);
   const fileStream = fs.createWriteStream(downloadFn);
-  textToSpeech(req.body.text, fileStream);
-  res.status(200).json({
-    success: true,
-    audio: `/audio/${name}.wav`,
-  });
+  try {
+    textToSpeech(req.body.text, fileStream);
+    res.status(200).json({
+      status: 'ok',
+      audio: `/audio/${name}.wav`,
+    });
+  } catch (e) {
+    res.status(400).json({
+      status: 'error',
+      error: 'Text-to-speech failed.',
+    });
+  }
 });
 
 router.get('/audio/:audioFileName', (req, res) => {
