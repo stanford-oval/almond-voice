@@ -10,6 +10,7 @@ const settings = {
     tokenPath: '/me/api/oauth2/token',
     authorizePath: '/me/api/oauth2/authorize',
   },
+  repoUrl: 'https://github.com/stanford-oval/almond-voice',
 };
 
 export default settings;

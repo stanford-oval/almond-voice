@@ -11,8 +11,10 @@ import wav from 'wav';
 import { WaveFile } from 'wavefile';
 import path from 'path';
 
+import debug from '../utils/debug';
 import { initRecognizer } from '../lib/csr';
 import textToSpeech from '../lib/tts';
+import settings from '../utils/settings';
 
 const upload = multer({ dest: 'uploads/' }); // audio kept in-memory
 const router = express.Router();
@@ -63,7 +65,7 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
     const fileStream = fs.createReadStream(`uploads/${req.file.filename}`);
     const wavReader = new wav.Reader();
     wavReader.on('format', (format: any) => {
-      console.log(format);
+      debug.recognizer(format);
       wavReader
         .on('data', (data: any) => {
           sdkAudioInputStream.write(data);
@@ -80,7 +82,19 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
 router.post('/rest/tts', (req, res) => {
   const name = crypto.randomBytes(32).toString('hex');
   const downloadFn = path.resolve(`downloads/${name}.wav`);
-  const fileStream = fs.createWriteStream(downloadFn);
+  const errorSuffix = `If this error reoccurs, please file a GitHub issue at ${settings.repoUrl}.`;
+
+  let fileStream;
+  try {
+    fileStream = fs.createWriteStream(downloadFn);
+  } catch (e) {
+    debug.tts(e);
+    res.status(500).json({
+      status: 'error',
+      error: `File system error. ${errorSuffix}`,
+    });
+  }
+
   try {
     textToSpeech(req.body.text, fileStream);
     res.status(200).json({
@@ -88,9 +102,11 @@ router.post('/rest/tts', (req, res) => {
       audio: `/audio/${name}.wav`,
     });
   } catch (e) {
+    debug.tts(e);
     res.status(400).json({
       status: 'error',
-      error: 'Text-to-speech failed.',
+      error:
+        'Invalid request. The body of the request must contain a .wav file with the correct MIME type audio/wav in a field named audio. The wav file needs to have a bit depth of 16 and be little endian.',
     });
   }
 });
