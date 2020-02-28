@@ -19,22 +19,44 @@ import settings from '../utils/settings';
 const upload = multer({ dest: 'uploads/' }); // audio kept in-memory
 const router = express.Router();
 
-router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
+router.post('/rest/stt', upload.single('audio'), (req, res) => {
+  const errorSuffix = `If this error reoccurs, please file a GitHub issue at ${settings.repoUrl}.`;
+
+  if (!req.file) {
+    res.status(400).json({
+      status: 'error',
+      error:
+        'The body of the request must contain a .wav file with the correct MIME type audio/wav in a field named audio.',
+    });
+  }
+
   const audioFn = `uploads/${req.file.filename}`;
   fs.readFile(audioFn, (err, wavData) => {
-    if (err) throw err;
+    if (err) {
+      debug.recognizer(err);
+      res.status(500).json({
+        status: 'error',
+        error: `Internal server error. ${errorSuffix}`,
+      });
+    }
 
     const rawWavFile = new WaveFile(wavData);
     rawWavFile.toSampleRate(16000);
 
     fs.writeFile(audioFn, rawWavFile.toBuffer(), problem => {
-      if (problem) throw err;
+      if (problem) {
+        debug.recognizer(problem);
+        res.status(500).json({
+          status: 'error',
+          error: `Filesystem error. ${errorSuffix}`,
+        });
+      }
     });
 
     const sdkAudioInputStream = AudioInputStream.createPushStream();
     const recognizer = initRecognizer(sdkAudioInputStream);
 
-    recognizer.recognized = (_, e) => {
+    recognizer.recognized = (_, e): void => {
       // Indicates that recognizable speech was not detected, and that recognition is done.
       if (e.result.reason === ResultReason.NoMatch) {
         res.status(400).json({
@@ -46,7 +68,7 @@ router.post('/rest/stt', upload.single('audio'), (req, res, next) => {
 
     recognizer.recognizeOnceAsync(
       (result: SpeechRecognitionResult) => {
-        console.log(`Result: ${result.text}`);
+        debug.recognizer(`Result: ${result.text}`);
         res.status(200).json({
           status: 'ok',
           text: result.text,
@@ -105,8 +127,7 @@ router.post('/rest/tts', (req, res) => {
     debug.tts(e);
     res.status(400).json({
       status: 'error',
-      error:
-        'Invalid request. The body of the request must contain a .wav file with the correct MIME type audio/wav in a field named audio. The wav file needs to have a bit depth of 16 and be little endian.',
+      error: `Bad request. ${errorSuffix}.`,
     });
   }
 });
