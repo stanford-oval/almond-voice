@@ -27,6 +27,7 @@ export function initRecognizer(sdkInputStream: any): SpeechRecognizer {
     settings.serviceRegion,
   );
   speechConfig.speechRecognitionLanguage = settings.language; // tslint:disable-line
+  speechConfig.setProperty('InitialSilenceTimeout', '50');
 
   // Recognizer settings
   return new SpeechRecognizer(speechConfig, audioConfig);

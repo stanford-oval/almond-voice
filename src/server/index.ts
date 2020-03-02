@@ -50,15 +50,17 @@ app.ws('/stt', (ws: any, req: express.Request) => {
 
   recognizer.recognized = (_, e) => {
     // Indicates that recognizable speech was not detected, and that recognition is done.
-    if (e.result.reason === ResultReason.NoMatch) {
+    if (e.result.reason !== ResultReason.RecognizedSpeech) {
       ws.send(
         JSON.stringify({ status: 'error', error: 'Speech unrecognizable.' }),
       );
+      recognizer.close();
     }
   };
 
   recognizer.recognizeOnceAsync(
     (result: SpeechRecognitionResult) => {
+      console.log('Result (RAW):', result);
       console.log(`Result: ${result.text}`);
       ws.send(JSON.stringify({ status: 'ok', text: result.text }));
       recognizer.close();
@@ -79,6 +81,7 @@ app.ws('/stt', (ws: any, req: express.Request) => {
   stream
     .on('data', (data: any) => {
       console.log('Received data!');
+      console.log(data.length);
       sdkAudioInputStream.write(toArrayBuffer(data));
     })
     .on('end', () => {
